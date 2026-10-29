@@ -1,0 +1,84 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Agent Regression Harness</title>
+<style>
+:root{--bg:#f6f7f9;--panel:#fff;--ink:#14181f;--mute:#5d6674;--line:#e2e5ea;--accent:#2a5bd7;--bad:#b3261e;--warn:#a16207;--ok:#157f4b;--chip:#eef1f5}
+@media (prefers-color-scheme:dark){:root{--bg:#0f1218;--panel:#171b23;--ink:#e8ebf0;--mute:#98a1b0;--line:#2a303b;--accent:#7aa2ff;--bad:#ff8a80;--warn:#facc15;--ok:#5fd39a;--chip:#232936}}
+*{box-sizing:border-box}body{margin:0;background:var(--bg);color:var(--ink);font:14px/1.5 -apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,sans-serif}
+header{display:flex;flex-wrap:wrap;gap:12px;align-items:center;padding:14px 24px;background:var(--panel);border-bottom:1px solid var(--line)}header h1{font-size:17px;margin:0;font-weight:650}
+.badge{font-size:12px;padding:2px 9px;border:1px solid var(--line);border-radius:999px;color:var(--mute);background:var(--bg)}
+main{display:grid;grid-template-columns:330px 1fr;gap:20px;padding:20px 24px;max-width:1360px;margin:auto}@media(max-width:960px){main{grid-template-columns:1fr;padding:16px}}
+.card{background:var(--panel);border:1px solid var(--line);border-radius:10px;padding:16px;margin-bottom:16px}.card h2{font-size:12px;letter-spacing:.06em;text-transform:uppercase;color:var(--mute);margin:0 0 10px;font-weight:600}
+label{display:block;font-size:12px;color:var(--mute);margin:8px 0 3px}select,input{font:inherit;color:var(--ink);width:100%;background:var(--bg);border:1px solid var(--line);border-radius:6px;padding:7px}
+button{font:inherit;background:var(--accent);color:#fff;border:0;border-radius:6px;padding:8px 14px;font-weight:600;cursor:pointer;margin-top:12px;width:100%}button:disabled{opacity:.5;cursor:wait}
+.hist{list-style:none;margin:0;padding:0}.hist li{display:flex;gap:8px;align-items:center;padding:7px 6px;border-bottom:1px solid var(--line);cursor:pointer;border-radius:6px}.hist li:hover,.hist li.sel{background:var(--bg)}
+.pill{font-size:11px;font-weight:700;padding:2px 8px;border-radius:999px;text-transform:uppercase;white-space:nowrap}
+.v-regression{background:color-mix(in srgb,var(--bad) 16%,transparent);color:var(--bad)}.v-changed{background:color-mix(in srgb,var(--warn) 18%,transparent);color:var(--warn)}.v-ok,.v-improvement{background:color-mix(in srgb,var(--ok) 16%,transparent);color:var(--ok)}.v-same{background:var(--chip);color:var(--mute)}
+.banner{display:flex;gap:20px;align-items:center;flex-wrap:wrap;padding:16px 18px;border-radius:10px;margin-bottom:16px;border:1px solid var(--line);background:var(--panel)}.banner .big{font-size:22px;font-weight:750}.b-regression .big{color:var(--bad)}.b-changed .big{color:var(--warn)}.b-ok .big{color:var(--ok)}
+.m{color:var(--mute);font-size:13px}.tiles{display:flex;gap:10px;margin-left:auto}.tile{text-align:center;padding:6px 14px;border-radius:8px;background:var(--bg);border:1px solid var(--line)}.tile b{display:block;font-size:20px}.tile span{font-size:11px;color:var(--mute);text-transform:uppercase}
+table{width:100%;border-collapse:collapse;font-size:13px}th,td{padding:6px;text-align:left;border-bottom:1px solid var(--line);vertical-align:middle}th{font-size:11px;text-transform:uppercase;color:var(--mute)}tr.row{cursor:pointer}tr.row:hover,tr.row.sel{background:var(--bg)}
+.bar{height:9px;background:var(--line);border-radius:5px;position:relative;min-width:70px}.bar i{position:absolute;left:0;top:0;bottom:0;border-radius:5px;background:var(--ok)}.bar.c i{background:var(--accent)}
+.chip{font-size:11px;padding:1px 7px;border-radius:4px;background:var(--chip);color:var(--mute);margin:0 3px 3px 0;display:inline-block;font-family:ui-monospace,Menlo,monospace}.chip.new{background:color-mix(in srgb,var(--warn) 18%,transparent);color:var(--warn)}
+.cols{display:grid;grid-template-columns:1fr 1fr;gap:14px}@media(max-width:1100px){.cols{grid-template-columns:1fr}}.col{border:1px solid var(--line);border-radius:8px;padding:10px}.col h3{margin:0 0 6px;font-size:12px;text-transform:uppercase;color:var(--mute)}
+pre{white-space:pre-wrap;word-break:break-word;font:12px/1.5 ui-monospace,Menlo,monospace;background:var(--bg);border:1px solid var(--line);border-radius:6px;padding:8px;margin:6px 0}
+.ok{color:var(--ok)}.no{color:var(--bad)}.err{color:var(--bad);margin-top:8px;font-size:13px}.progress{height:8px;background:var(--line);border-radius:4px;margin-top:10px}.progress i{display:block;height:100%;background:var(--accent);border-radius:4px;transition:width .3s}
+.warn{background:color-mix(in srgb,var(--warn) 16%,transparent);color:var(--warn);padding:8px 12px;border-radius:8px;margin-bottom:10px;font-size:13px}
+</style>
+</head>
+<body>
+<header><h1>Agent Regression Harness</h1><span class="badge">record · replay · diff behavior, noise-aware</span></header>
+<main>
+<aside>
+ <div class="card"><h2>Compare</h2>
+  <label>Baseline model</label><select id="bm"></select>
+  <label>Candidate model</label><select id="cm"></select>
+  <label>Candidate system prompt</label><select id="cp"><option value="">same as baseline</option></select>
+  <label>Runs per case</label><input id="rep" type="number" min="1" max="10" value="5">
+  <button id="go">Run comparison</button><div class="progress" id="pg" style="display:none"><i id="pgi" style="width:0"></i></div><div class="err" id="err"></div></div>
+ <div class="card"><h2>Recent runs</h2><ul class="hist" id="hist"></ul></div>
+</aside>
+<section id="out"><div class="card m" style="padding:40px;text-align:center">Pick two models (or one model with a different system prompt) and run a comparison of the sample order-support suite.</div></section>
+</main>
+<script>
+const $=id=>document.getElementById(id);
+const esc=s=>String(s??"").replace(/[&<>"']/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));
+let cfg={},cur=null,rep=null,selCase=null;
+async function api(p,o){const r=await fetch(p,o);const b=await r.json().catch(()=>({}));if(!r.ok)throw new Error(b.detail||r.statusText);return b}
+const provOf=m=>m.startsWith("gpt")?"openai":m==="mock-1"?"mock":"gemini";
+async function init(){cfg=await api("/api/config");const models=cfg.providers.includes("mock")&&!cfg.providers.includes("gemini")?["mock-1"]:cfg.models.filter(m=>cfg.providers.includes(provOf(m)));
+ for(const id of ["bm","cm"])$(id).innerHTML=models.map(m=>`<option>${esc(m)}</option>`).join("");
+ if(models.length>1)$("cm").selectedIndex=Math.min(1,models.length-1);
+ const pr=await api("/api/prompts");$("cp").innerHTML+=Object.keys(pr).map(k=>`<option>${esc(k)}</option>`).join("");
+ $("go").onclick=go;await hist();const h=location.hash.slice(1);if(h)load(h)}
+async function hist(){const rows=await api("/api/runs");$("hist").innerHTML=rows.map(r=>`<li data-id="${esc(r.id)}" class="${cur===r.id?"sel":""}"><span class="pill v-${r.verdict||"same"}">${esc(r.verdict||r.status)}</span><span class="m">${r.done}/${r.total}</span></li>`).join("")||`<li class="m" style="cursor:default">none yet</li>`;
+ document.querySelectorAll("#hist li[data-id]").forEach(li=>li.onclick=()=>load(li.dataset.id))}
+async function go(){$("err").textContent="";$("go").disabled=true;
+ const mk=(m,l)=>({label:l,provider:provOf(m),model:m});
+ try{const r=await api("/api/runs",{method:"POST",headers:{"content-type":"application/json"},body:JSON.stringify({sample:"order_support",baseline:mk($("bm").value,"baseline"),candidate:mk($("cm").value,"candidate"),candidate_prompt:$("cp").value||null,repeats:+$("rep").value})});await load(r.id)}
+ catch(e){$("err").textContent=e.message;$("go").disabled=false}}
+async function load(id){cur=id;location.hash=id;$("pg").style.display="";
+ for(;;){const j=await api("/api/runs/"+id);$("pgi").style.width=(j.total?j.done/j.total*100:0)+"%";
+  if(j.status==="running"){await new Promise(r=>setTimeout(r,1200));continue}
+  $("pg").style.display="none";$("go").disabled=false;await hist();
+  if(j.status==="error"){$("err").textContent=j.error;return}
+  rep=j.report;selCase=(rep.cases.find(c=>c.verdict==="regression")||rep.cases[0]).case_id;render();return}}
+const bar=(s,cls)=>`<div class="bar ${cls||""}"><i style="width:${s.runs?s.passed/s.runs*100:0}%"></i></div>`;
+function seqChips(seqs){return Object.entries(seqs).map(([k,v])=>`<div><span class="chip">${esc(k)}</span> <span class="m">×${v}</span></div>`).join("")}
+function trace(t){if(!t)return"";return `<div class="m">${t.calls.length} tool call(s) · ${t.turns} turn(s) · $${t.usage.cost_usd.toFixed(5)} · ${t.latency_ms} ms</div>`+t.calls.map(c=>`<div><span class="chip ${c.novel?"new":""}">${esc(c.name)}(${esc(Object.entries(c.args).map(([k,v])=>k+"="+v).join(", "))})</span></div>`).join("")+`<pre>${esc(t.final||t.error||"(no answer)")}</pre>`}
+function render(){const r=rep;const cs=r.cases.find(c=>c.case_id===selCase);
+ $("out").innerHTML=`<div class="banner b-${r.verdict}"><div><div class="big">${r.verdict.toUpperCase()}</div><div class="m">${esc(r.baseline.model)} → ${esc(r.candidate.model)}${r.candidate.system?" · different system prompt":""} · ${r.repeats} runs/case · $${r.cost_usd.toFixed(4)} · ${(r.duration_ms/1000).toFixed(0)}s</div></div>
+  <div class="tiles">${["regression","improvement","changed","same"].map(k=>`<div class="tile"><b>${r.counts[k]||0}</b><span>${k}</span></div>`).join("")}</div></div>
+  ${r.degraded.map(d=>`<div class="warn">⚠ ${esc(d)}</div>`).join("")}
+  <div class="card"><h2>Cases</h2><table><thead><tr><th>case</th><th>baseline pass</th><th>candidate pass</th><th>p (worse by chance)</th><th>calls</th><th>verdict</th></tr></thead><tbody>${r.cases.map(c=>`<tr class="row ${c.case_id===selCase?"sel":""}" data-c="${esc(c.case_id)}"><td><b>${esc(c.case_id)}</b></td><td>${bar(c.base)}<span class="m">${c.base.passed}/${c.base.runs}</span></td><td>${bar(c.cand,"c")}<span class="m">${c.cand.passed}/${c.cand.runs}</span></td><td class="m">${c.p_regress.toFixed(3)}</td><td class="m">${c.base.mean_calls} → ${c.cand.mean_calls}</td><td><span class="pill v-${c.verdict}">${c.verdict}</span></td></tr>`).join("")}</tbody></table></div>
+  ${cs?`<div class="card"><h2>${esc(cs.case_id)}</h2>${cs.reasons.map(x=>`<div><b>${esc(x)}</b></div>`).join("")}${cs.arg_diffs.map(x=>`<div class="m">arg diff: ${esc(x)}</div>`).join("")}
+   ${Object.entries(cs.cand.failed_assertions).map(([k,v])=>`<div class="no">candidate failed ${esc(k)} in ${v}/${cs.cand.runs} runs</div>`).join("")}${Object.entries(cs.base.failed_assertions).map(([k,v])=>`<div class="m">baseline failed ${esc(k)} in ${v}/${cs.base.runs} runs</div>`).join("")}
+   ${cs.judge?`<div class="m">model judge (informational): ${esc(cs.judge.winner)} — ${esc(cs.judge.reason)}</div>`:""}
+   <div class="cols"><div class="col"><h3>Baseline · tool sequences</h3>${seqChips(cs.base.tool_sequences)}${trace(cs.base_example)}</div><div class="col"><h3>Candidate · tool sequences</h3>${seqChips(cs.cand.tool_sequences)}${trace(cs.cand_example)}</div></div></div>`:""}`;
+ document.querySelectorAll("tr.row").forEach(tr=>tr.onclick=()=>{selCase=tr.dataset.c;render()})}
+init().catch(e=>{$("err").textContent=e.message});
+</script>
+</body>
+</html>
