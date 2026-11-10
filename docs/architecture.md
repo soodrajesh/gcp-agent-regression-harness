@@ -1,5 +1,7 @@
 # Architecture
 
+[![Architecture diagram](img/architecture.png)](img/architecture.svg)
+
 ```
 suite.json (system prompt, tools, cases + assertions)
         |
